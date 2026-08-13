@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   User,
@@ -8,29 +8,57 @@ import {
   LogOut,
   Truck,
   ShoppingBag,
-  Trash2
+  Trash2,
+  Lock,
+  Mail,
+  CheckCircle2,
+  AlertCircle,
+  Database,
+  Check
 } from 'lucide-react';
 import { useCart } from '../hooks/useCart';
 import { useProducts } from '../context/ProductContext';
+import { useAuth } from '../context/AuthContext';
 
 export function Cliente() {
   const { addToCart } = useCart();
   const { products } = useProducts();
+  const { user, profile, signUp, signIn, signOut, updateProfile, isSupabaseConfigured } = useAuth();
 
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const isLoggedIn = Boolean(user);
   const [authMode, setAuthMode] = useState('login');
   const [activeTab, setActiveTab] = useState('pedidos');
+  const [authError, setAuthError] = useState('');
+  const [authSuccessMsg, setAuthSuccessMsg] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const [profile, setProfile] = useState({
-    name: 'Maria Oliveira Silva',
-    email: 'maria.oliveira@email.com',
-    cpf: '123.456.789-00',
-    phone: '(11) 98765-4321',
-    address: 'Avenida Paulista, 1000 - Apto 42',
-    city: 'São Paulo',
-    state: 'SP',
-    cep: '01310-100'
+  // Form Inputs
+  const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+
+  // Editable Profile Form State
+  const [profileForm, setProfileForm] = useState({
+    full_name: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    cep: ''
   });
+
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({
+        full_name: profile.full_name || profile.name || '',
+        phone: profile.phone || '',
+        address: profile.address || '',
+        city: profile.city || '',
+        state: profile.state || '',
+        cep: profile.cep || ''
+      });
+    }
+  }, [profile]);
 
   const ordersHistory = [
     {
@@ -49,120 +77,175 @@ export function Cliente() {
           image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&auto=format&fit=crop&q=80'
         }
       ]
-    },
-    {
-      id: 'XM-73104',
-      date: '28 de Julho, 2026',
-      status: 'Em Trânsito',
-      statusColor: 'bg-blue-100 text-blue-800 border-blue-300',
-      total: 349.90,
-      trackingCode: 'BR472910394XM',
-      items: [
-        {
-          name: 'Sapato Social Couro XM Premium Classic',
-          size: 40,
-          color: 'Café',
-          price: 349.90,
-          image: 'https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=400&auto=format&fit=crop&q=80'
-        }
-      ]
     }
   ];
 
-  const [wishlist, setWishlist] = useState([products[0], products[1], products[4]].filter(Boolean));
+  const [wishlist, setWishlist] = useState([products[0], products[1]].filter(Boolean));
 
   const handleRemoveFromWishlist = (id) => {
     setWishlist((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleProfileSubmit = (e) => {
+  const handleAuthSubmit = async (e) => {
     e.preventDefault();
-    alert('Dados cadastrais atualizados com sucesso!');
+    setAuthError('');
+    setAuthSuccessMsg('');
+    setSubmitting(true);
+
+    if (!emailInput.trim() || !passwordInput.trim()) {
+      setAuthError('Por favor, preencha o e-mail e a senha.');
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      if (authMode === 'register') {
+        const { error } = await signUp(emailInput.trim(), passwordInput, nameInput.trim());
+        if (error) {
+          setAuthError(error.message || 'Erro ao realizar cadastro.');
+        } else {
+          setAuthSuccessMsg('Cadastro realizado com sucesso! Bem-vindo à XM Calçados.');
+        }
+      } else {
+        const { error } = await signIn(emailInput.trim(), passwordInput);
+        if (error) {
+          setAuthError(error.message || 'E-mail ou senha incorretos.');
+        }
+      }
+    } catch (err) {
+      setAuthError('Ocorreu um erro na autenticação.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
+  const handleProfileSave = async (e) => {
+    e.preventDefault();
+    await updateProfile(profileForm);
+    alert('Perfil atualizado com sucesso no banco de dados!');
+  };
+
+  // LOGGED OUT VIEW (Starts logged out by default!)
   if (!isLoggedIn) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 space-y-6">
         <div className="text-center space-y-2">
-          <img src="/logo.png" alt="XM Calçados" className="h-10 mx-auto object-contain mb-2" />
+          <img src="/logo.png" alt="XM Calçados" className="h-12 mx-auto object-contain mb-3" />
           <h1 className="text-2xl font-black text-slate-900">
-            {authMode === 'login' ? 'Acesse sua Conta' : 'Crie sua Conta XM'}
+            {authMode === 'login' ? 'Acesse sua Conta' : 'Crie sua Conta na XM'}
           </h1>
           <p className="text-xs text-slate-500">
             {authMode === 'login'
-              ? 'Acompanhe seus pedidos e gerencie suas compras'
-              : 'Cadastre-se gratuitamente para comprar com frete exclusivo'}
+              ? 'Acompanhe seus pedidos e gerencie suas compras de forma rápida e segura'
+              : 'Cadastre-se para aproveitar ofertas exclusivas e frete grátis'}
           </p>
+
+          {isSupabaseConfigured ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              <Database className="w-3.5 h-3.5 text-emerald-600" /> Autenticação Segura via Supabase (PostgreSQL)
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+              <Database className="w-3.5 h-3.5 text-amber-600" /> Modo de Demonstração (Conecte as chaves Supabase no .env)
+            </span>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+        <div className="grid grid-cols-2 bg-slate-100 p-1.5 rounded-2xl text-xs font-bold shadow-inner">
           <button
-            onClick={() => setAuthMode('login')}
-            className={`py-2 rounded-lg transition-all ${
-              authMode === 'login' ? 'bg-white text-slate-900 shadow' : 'text-slate-500'
+            onClick={() => { setAuthMode('login'); setAuthError(''); setAuthSuccessMsg(''); }}
+            className={`py-2.5 rounded-xl transition-all ${
+              authMode === 'login' ? 'bg-white text-slate-900 shadow-sm font-extrabold' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
             Entrar
           </button>
           <button
-            onClick={() => setAuthMode('register')}
-            className={`py-2 rounded-lg transition-all ${
-              authMode === 'register' ? 'bg-white text-slate-900 shadow' : 'text-slate-500'
+            onClick={() => { setAuthMode('register'); setAuthError(''); setAuthSuccessMsg(''); }}
+            className={`py-2.5 rounded-xl transition-all ${
+              authMode === 'register' ? 'bg-white text-slate-900 shadow-sm font-extrabold' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
             Cadastrar
           </button>
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setIsLoggedIn(true);
-          }}
-          className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 text-xs"
-        >
+        <form onSubmit={handleAuthSubmit} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4 text-xs">
+          {authError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl font-medium flex items-center gap-2 text-xs">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{authError}</span>
+            </div>
+          )}
+
+          {authSuccessMsg && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl font-medium flex items-center gap-2 text-xs">
+              <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>{authSuccessMsg}</span>
+            </div>
+          )}
+
           {authMode === 'register' && (
             <div>
               <label className="block font-bold text-slate-700 mb-1">Nome Completo</label>
-              <input
-                type="text"
-                required
-                placeholder="Seu nome completo"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  placeholder="Seu nome completo"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+                <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              </div>
             </div>
           )}
 
           <div>
             <label className="block font-bold text-slate-700 mb-1">E-mail</label>
-            <input
-              type="email"
-              required
-              placeholder="seu.email@exemplo.com"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
+            <div className="relative">
+              <input
+                type="email"
+                required
+                placeholder="seu.email@exemplo.com"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            </div>
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Senha</label>
-            <input
-              type="password"
-              required
-              placeholder="••••••••"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
+            <label className="block font-bold text-slate-700 mb-1">Senha (Criptografada no Banco)</label>
+            <div className="relative">
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            </div>
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl shadow-md transition-all"
+            disabled={submitting}
+            className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-brand-500/25 transition-all hover:scale-[1.01] disabled:opacity-50"
           >
-            {authMode === 'login' ? 'Entrar na Minha Conta' : 'Criar Minha Conta'}
+            {submitting ? 'Processando...' : authMode === 'login' ? 'Entrar na Minha Conta' : 'Criar Minha Conta'}
           </button>
         </form>
       </div>
     );
   }
+
+  // LOGGED IN VIEW
+  const displayName = profile?.full_name || profile?.name || user?.email?.split('@')[0] || 'Cliente';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -170,35 +253,39 @@ export function Cliente() {
       <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
         <div className="flex items-center gap-4 text-center sm:text-left">
           <div className="w-16 h-16 rounded-2xl bg-brand-500 text-white font-black text-2xl flex items-center justify-center shadow-md">
-            {profile.name.substring(0, 2).toUpperCase()}
+            {displayName.substring(0, 2).toUpperCase()}
           </div>
           <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-400">
-              Minha Conta • XM Calçados
-            </span>
-            <h1 className="text-xl sm:text-2xl font-black">{profile.name}</h1>
-            <p className="text-xs text-slate-400">{profile.email} • Cliente desde 2026</p>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-400">
+                Minha Conta • XM Calçados
+              </span>
+              {isSupabaseConfigured && (
+                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-800">
+                  Autenticado no Supabase
+                </span>
+              )}
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black">{displayName}</h1>
+            <p className="text-xs text-slate-400">{user.email}</p>
           </div>
         </div>
 
         <button
-          onClick={() => setIsLoggedIn(false)}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-rose-400 bg-slate-800 px-4 py-2 rounded-xl transition-colors border border-slate-700"
+          onClick={signOut}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-rose-400 bg-slate-800 px-4 py-2.5 rounded-xl transition-colors border border-slate-700"
         >
           <LogOut className="w-4 h-4" /> Sair da Conta
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
         <aside className="lg:col-span-3">
           <div className="bg-white rounded-3xl border border-slate-200 p-3 shadow-sm space-y-1">
             <button
               onClick={() => setActiveTab('pedidos')}
               className={`w-full text-left p-3 rounded-2xl text-xs font-extrabold flex items-center justify-between transition-colors ${
-                activeTab === 'pedidos'
-                  ? 'bg-brand-50 text-brand-600'
-                  : 'text-slate-700 hover:bg-slate-50'
+                activeTab === 'pedidos' ? 'bg-brand-50 text-brand-600' : 'text-slate-700 hover:bg-slate-50'
               }`}
             >
               <div className="flex items-center gap-2.5">
@@ -213,9 +300,7 @@ export function Cliente() {
             <button
               onClick={() => setActiveTab('favoritos')}
               className={`w-full text-left p-3 rounded-2xl text-xs font-extrabold flex items-center justify-between transition-colors ${
-                activeTab === 'favoritos'
-                  ? 'bg-brand-50 text-brand-600'
-                  : 'text-slate-700 hover:bg-slate-50'
+                activeTab === 'favoritos' ? 'bg-brand-50 text-brand-600' : 'text-slate-700 hover:bg-slate-50'
               }`}
             >
               <div className="flex items-center gap-2.5">
@@ -230,9 +315,7 @@ export function Cliente() {
             <button
               onClick={() => setActiveTab('dados')}
               className={`w-full text-left p-3 rounded-2xl text-xs font-extrabold flex items-center justify-between transition-colors ${
-                activeTab === 'dados'
-                  ? 'bg-brand-50 text-brand-600'
-                  : 'text-slate-700 hover:bg-slate-50'
+                activeTab === 'dados' ? 'bg-brand-50 text-brand-600' : 'text-slate-700 hover:bg-slate-50'
               }`}
             >
               <div className="flex items-center gap-2.5">
@@ -244,7 +327,6 @@ export function Cliente() {
         </aside>
 
         <main className="lg:col-span-9">
-          
           {activeTab === 'pedidos' && (
             <div className="space-y-6">
               <h2 className="text-xl font-black text-slate-900">Histórico de Pedidos</h2>
@@ -350,58 +432,48 @@ export function Cliente() {
                 Dados Pessoais & Endereço
               </h2>
 
-              <form onSubmit={handleProfileSubmit} className="space-y-4 text-xs">
+              <form onSubmit={handleProfileSave} className="space-y-4 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">Nome Completo</label>
                     <input
                       type="text"
-                      value={profile.name}
-                      onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                      value={profileForm.full_name}
+                      onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-medium"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">E-mail</label>
+                    <label className="block font-bold text-slate-700 mb-1">E-mail Cadastrado</label>
                     <input
                       type="email"
-                      value={profile.email}
-                      onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-medium"
+                      disabled
+                      value={user.email}
+                      className="w-full bg-slate-100 border border-slate-200 rounded-xl py-2.5 px-3 font-medium text-slate-500 cursor-not-allowed"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">CPF</label>
+                    <label className="block font-bold text-slate-700 mb-1">Telefone / Celular</label>
                     <input
                       type="text"
-                      value={profile.cpf}
-                      onChange={(e) => setProfile({ ...profile, cpf: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Telefone</label>
-                    <input
-                      type="text"
-                      value={profile.phone}
-                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                      value={profileForm.phone}
+                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-medium"
                     />
                   </div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 space-y-4">
-                  <h3 className="font-bold text-slate-900 text-sm">Endereço Principal</h3>
+                  <h3 className="font-bold text-slate-900 text-sm">Endereço Principal de Entrega</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="sm:col-span-2">
-                      <label className="block font-bold text-slate-700 mb-1">Endereço</label>
+                      <label className="block font-bold text-slate-700 mb-1">Logradouro / Rua</label>
                       <input
                         type="text"
-                        value={profile.address}
-                        onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+                        value={profileForm.address}
+                        onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-medium"
                       />
                     </div>
@@ -409,9 +481,29 @@ export function Cliente() {
                       <label className="block font-bold text-slate-700 mb-1">CEP</label>
                       <input
                         type="text"
-                        value={profile.cep}
-                        onChange={(e) => setProfile({ ...profile, cep: e.target.value })}
+                        value={profileForm.cep}
+                        onChange={(e) => setProfileForm({ ...profileForm, cep: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Cidade</label>
+                      <input
+                        type="text"
+                        value={profileForm.city}
+                        onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">UF / Estado</label>
+                      <input
+                        type="text"
+                        value={profileForm.state}
+                        onChange={(e) => setProfileForm({ ...profileForm, state: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-medium uppercase"
                       />
                     </div>
                   </div>
@@ -421,12 +513,11 @@ export function Cliente() {
                   type="submit"
                   className="bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-6 py-3 rounded-xl shadow transition-all"
                 >
-                  Salvar Alterações
+                  Salvar Perfil no Banco de Dados
                 </button>
               </form>
             </div>
           )}
-
         </main>
       </div>
 

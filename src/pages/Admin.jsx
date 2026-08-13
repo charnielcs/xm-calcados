@@ -21,7 +21,12 @@ import {
   Eye,
   EyeOff,
   CheckCircle2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Lock,
+  UserCheck,
+  LogOut,
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useSiteConfig } from '../context/SiteConfigContext';
@@ -37,6 +42,46 @@ export function Admin() {
     updateHomeSections,
     resetConfig
   } = useSiteConfig();
+
+  // --- ADMIN AUTHENTICATION STATE ---
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
+    return sessionStorage.getItem('xm_admin_authenticated') === 'true';
+  });
+
+  const [adminUsernameInput, setAdminUsernameInput] = useState('');
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [adminLoginError, setAdminLoginError] = useState('');
+
+  // Credentials configuration
+  const ADMIN_CREDENTIALS = {
+    username: 'admin',
+    password: 'xm-calcados-2026!'
+  };
+
+  const handleAdminLoginSubmit = (e) => {
+    e.preventDefault();
+    setAdminLoginError('');
+
+    const usernameMatch =
+      adminUsernameInput.trim().toLowerCase() === ADMIN_CREDENTIALS.username ||
+      adminUsernameInput.trim().toLowerCase() === 'admin@xmcalcados.com.br';
+    const passwordMatch = adminPasswordInput === ADMIN_CREDENTIALS.password;
+
+    if (usernameMatch && passwordMatch) {
+      sessionStorage.setItem('xm_admin_authenticated', 'true');
+      setIsAdminAuthenticated(true);
+    } else {
+      setAdminLoginError('Usuário ou senha incorretos. Verifique suas credenciais de administrador.');
+    }
+  };
+
+  const handleAdminLogout = () => {
+    sessionStorage.removeItem('xm_admin_authenticated');
+    setIsAdminAuthenticated(false);
+    setAdminUsernameInput('');
+    setAdminPasswordInput('');
+  };
 
   // Admin Top-Level Tab State: 'products' or 'layout'
   const [adminTab, setAdminTab] = useState('products');
@@ -68,19 +113,10 @@ export function Admin() {
   const [formData, setFormData] = useState(initialFormState);
 
   // --- LAYOUT FORM STATES ---
-  // 1. Store Info Form State
   const [storeInfoForm, setStoreInfoForm] = useState(config.storeInfo || {});
-
-  // 2. Theme Colors Form State
   const [colorsForm, setColorsForm] = useState(config.themeColors || { primary: '#ff5500', secondary: '#3b4268' });
-
-  // 3. Slides Form State
   const [slidesForm, setSlidesForm] = useState(config.bannerSlides || []);
-
-  // 4. Categories Form State
   const [categoriesForm, setCategoriesForm] = useState(config.featuredCategories || []);
-
-  // 5. Home Sections Form State
   const [sectionsForm, setSectionsForm] = useState(
     [...(config.homeSections || [])].sort((a, b) => a.order - b.order)
   );
@@ -217,12 +253,10 @@ export function Admin() {
 
     if (targetIndex < 0 || targetIndex >= newSections.length) return;
 
-    // Swap elements
     const temp = newSections[index];
     newSections[index] = newSections[targetIndex];
     newSections[targetIndex] = temp;
 
-    // Update order numbers
     const reordered = newSections.map((sec, idx) => ({ ...sec, order: idx + 1 }));
     setSectionsForm(reordered);
   };
@@ -233,14 +267,104 @@ export function Admin() {
     setSectionsForm(newSections);
   };
 
+  // =========================================================================
+  // ADMIN LOGIN SCREEN (IF UNAUTHENTICATED)
+  // =========================================================================
+  if (!isAdminAuthenticated) {
+    return (
+      <div className="min-h-[75vh] flex items-center justify-center px-4 py-12">
+        <div className="max-w-md w-full space-y-6">
+          
+          <div className="text-center space-y-3">
+            <div className="w-16 h-16 rounded-3xl bg-slate-900 text-brand-500 flex items-center justify-center mx-auto shadow-xl border border-slate-800">
+              <Lock className="w-8 h-8" />
+            </div>
+            
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-slate-900 text-slate-300 border border-slate-800">
+              <ShieldCheck className="w-3.5 h-3.5 text-brand-500" /> Acesso Restrito ao Administrador
+            </span>
+
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+              Painel de Gestão XM Calçados
+            </h1>
+            <p className="text-xs text-slate-500">
+              Digite a senha de administrador para gerenciar produtos e o layout do site.
+            </p>
+          </div>
+
+          <form onSubmit={handleAdminLoginSubmit} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xl space-y-4 text-xs">
+            
+            {adminLoginError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl font-medium flex items-center gap-2 text-xs">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{adminLoginError}</span>
+              </div>
+            )}
+
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Usuário Administrador</label>
+              <input
+                type="text"
+                required
+                placeholder="Ex: admin"
+                value={adminUsernameInput}
+                onChange={(e) => setAdminUsernameInput(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-3.5 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Senha de Acesso</label>
+              <div className="relative">
+                <input
+                  type={showAdminPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••••••"
+                  value={adminPasswordInput}
+                  onChange={(e) => setAdminPasswordInput(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-3.5 pr-10 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                >
+                  {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-slate-900/20 transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
+            >
+              <UserCheck className="w-4 h-4 text-brand-500" /> Entrar no Painel de Admin
+            </button>
+
+            {/* Credential Reference Box for Admin */}
+            <div className="mt-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1 text-[11px] text-slate-600">
+              <span className="font-bold text-slate-800 block uppercase tracking-wider text-[10px]">Credenciais Padrão do Admin:</span>
+              <p>Usuário: <strong className="font-mono text-slate-900">admin</strong></p>
+              <p>Senha: <strong className="font-mono text-brand-600">xm-calcados-2026!</strong></p>
+            </div>
+          </form>
+
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // LOGGED-IN ADMIN PANEL (AUTHORIZED VIEW)
+  // =========================================================================
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
-      {/* Header Banner */}
+      {/* Header Banner with Logout */}
       <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl border border-slate-800">
         <div className="space-y-1">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-brand-500/20 text-brand-300 border border-brand-500/30">
-            <Sparkles className="w-3.5 h-3.5" /> Painel de Controle Completo Sem Código
+            <Sparkles className="w-3.5 h-3.5" /> Sessão de Administrador Autenticada
           </span>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
             Administração — XM Calçados
@@ -272,6 +396,14 @@ export function Admin() {
               <Plus className="w-4 h-4" /> Novo Produto
             </button>
           )}
+
+          <button
+            onClick={handleAdminLogout}
+            className="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-3 rounded-xl shadow transition-colors"
+            title="Encerrar sessão de administrador"
+          >
+            <LogOut className="w-4 h-4" /> Sair do Admin
+          </button>
         </div>
       </div>
 
@@ -477,7 +609,6 @@ export function Admin() {
       {adminTab === 'layout' && (
         <div className="space-y-6 animate-in fade-in duration-200">
           
-          {/* Sub-Tabs for Layout Settings */}
           <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
             <button
               onClick={() => setLayoutSubTab('carousel')}
@@ -535,7 +666,6 @@ export function Admin() {
             </button>
           </div>
 
-          {/* SUB-TAB 1: BANNERS DO CARROSSEL */}
           {layoutSubTab === 'carousel' && (
             <form onSubmit={handleSaveSlides} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -664,7 +794,6 @@ export function Admin() {
             </form>
           )}
 
-          {/* SUB-TAB 2: CORES DA MARCA */}
           {layoutSubTab === 'colors' && (
             <form onSubmit={handleSaveColors} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
               <div className="border-b border-slate-100 pb-4">
@@ -721,7 +850,6 @@ export function Admin() {
             </form>
           )}
 
-          {/* SUB-TAB 3: TEXTOS INSTITUCIONAIS & RODAPÉ */}
           {layoutSubTab === 'storeInfo' && (
             <form onSubmit={handleSaveStoreInfo} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6 text-xs">
               <div className="border-b border-slate-100 pb-4">
@@ -800,7 +928,6 @@ export function Admin() {
             </form>
           )}
 
-          {/* SUB-TAB 4: REORDENAR E ATIVAR/DESATIVAR SEÇÕES DA HOME */}
           {layoutSubTab === 'sections' && (
             <form onSubmit={handleSaveSections} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
               <div className="border-b border-slate-100 pb-4">
@@ -827,7 +954,6 @@ export function Admin() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      {/* Up/Down Arrow Reordering */}
                       <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
                         <button
                           type="button"
@@ -849,7 +975,6 @@ export function Admin() {
                         </button>
                       </div>
 
-                      {/* Enable / Disable Toggle Switch */}
                       <button
                         type="button"
                         onClick={() => handleToggleSectionEnabled(index)}
@@ -879,7 +1004,6 @@ export function Admin() {
             </form>
           )}
 
-          {/* SUB-TAB 5: CATEGORIAS EM DESTAQUE DA HOME */}
           {layoutSubTab === 'categories' && (
             <form onSubmit={handleSaveCategories} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
               <div className="border-b border-slate-100 pb-4">
