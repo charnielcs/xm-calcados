@@ -9,13 +9,21 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   email TEXT,
   phone TEXT,
   cpf TEXT,
+  birth_date TEXT,
   address TEXT,
+  neighborhood TEXT,
   city TEXT,
   state TEXT,
   cep TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Adicionar colunas se a tabela já existia antes
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS cpf TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS birth_date TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS neighborhood TEXT;
 
 -- Habilitar RLS (Row Level Security) na tabela profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -91,7 +99,8 @@ BEGIN
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
     NEW.email
-  );
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

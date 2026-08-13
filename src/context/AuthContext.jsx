@@ -30,14 +30,15 @@ export function AuthProvider({ children }) {
   }, []);
 
   // SignUp Function
-  const signUp = async (email, password, fullName) => {
+  const signUp = async (email, password, fullName, phone = '') => {
     if (!isSupabaseConfigured) {
       const newUser = {
         id: `usr_${Date.now()}`,
         email,
         full_name: fullName || email.split('@')[0],
+        phone: phone,
         cpf: '',
-        phone: '',
+        birth_date: '',
         address: '',
         city: '',
         state: '',
@@ -61,7 +62,8 @@ export function AuthProvider({ children }) {
       const profilePayload = {
         id: userObj.id,
         full_name: fullName,
-        email: email
+        email: email,
+        phone: phone
       };
 
       await supabaseDb.upsertProfile(profilePayload, accessToken);
