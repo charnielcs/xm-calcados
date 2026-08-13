@@ -1,8 +1,16 @@
 // Native Lightweight Supabase Client for React (Zero external dependencies)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Clean and sanitize URL (strips trailing slashes or accidental /rest/v1/ paths)
+const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const rawAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+export const supabaseUrl = rawUrl.trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
+export const supabaseAnonKey = rawAnonKey.trim();
+
+export const isSupabaseConfigured = Boolean(
+  supabaseUrl &&
+  supabaseAnonKey &&
+  supabaseUrl !== 'https://xyzcompany.supabase.co'
+);
 
 // Generic REST Fetch helper
 async function supabaseFetch(endpoint, options = {}) {
@@ -17,8 +25,10 @@ async function supabaseFetch(endpoint, options = {}) {
     ...(options.headers || {})
   };
 
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
   try {
-    const res = await fetch(`${supabaseUrl}${endpoint}`, {
+    const res = await fetch(`${supabaseUrl}${cleanEndpoint}`, {
       method: options.method || 'GET',
       headers,
       body: options.body ? JSON.stringify(options.body) : undefined
@@ -26,7 +36,12 @@ async function supabaseFetch(endpoint, options = {}) {
 
     const data = await res.json();
     if (!res.ok) {
-      return { data: null, error: { message: data.msg || data.error_description || data.message || 'Erro na requisição' } };
+      return {
+        data: null,
+        error: {
+          message: data.msg || data.error_description || data.message || data.error || 'Erro na requisição'
+        }
+      };
     }
     return { data, error: null };
   } catch (err) {
