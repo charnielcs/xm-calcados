@@ -14,7 +14,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Database,
-  Check
+  Check,
+  Phone,
+  Calendar
 } from 'lucide-react';
 import { useCart } from '../hooks/useCart';
 import { useProducts } from '../context/ProductContext';
@@ -33,14 +35,18 @@ export function Cliente() {
   const [submitting, setSubmitting] = useState(false);
 
   // Form Inputs
-  const [emailInput, setEmailInput] = useState('');
-  const [passwordInput, setPasswordInput] = useState('');
   const [nameInput, setNameInput] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [phoneInput, setPhoneInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
 
   // Editable Profile Form State
   const [profileForm, setProfileForm] = useState({
     full_name: '',
     phone: '',
+    cpf: '',
+    birth_date: '',
     address: '',
     city: '',
     state: '',
@@ -52,6 +58,8 @@ export function Cliente() {
       setProfileForm({
         full_name: profile.full_name || profile.name || '',
         phone: profile.phone || '',
+        cpf: profile.cpf || '',
+        birth_date: profile.birth_date || '',
         address: profile.address || '',
         city: profile.city || '',
         state: profile.state || '',
@@ -90,17 +98,36 @@ export function Cliente() {
     e.preventDefault();
     setAuthError('');
     setAuthSuccessMsg('');
-    setSubmitting(true);
 
     if (!emailInput.trim() || !passwordInput.trim()) {
       setAuthError('Por favor, preencha o e-mail e a senha.');
-      setSubmitting(false);
       return;
     }
 
+    if (authMode === 'register') {
+      if (!nameInput.trim()) {
+        setAuthError('Por favor, digite seu nome completo.');
+        return;
+      }
+      if (!phoneInput.trim()) {
+        setAuthError('Por favor, digite seu número de celular.');
+        return;
+      }
+      if (passwordInput !== confirmPasswordInput) {
+        setAuthError('As senhas não coincidem. Digite a senha escolhida novamente.');
+        return;
+      }
+      if (passwordInput.length < 6) {
+        setAuthError('A senha deve ter no mínimo 6 caracteres.');
+        return;
+      }
+    }
+
+    setSubmitting(true);
+
     try {
       if (authMode === 'register') {
-        const { error } = await signUp(emailInput.trim(), passwordInput, nameInput.trim());
+        const { error } = await signUp(emailInput.trim(), passwordInput, nameInput.trim(), phoneInput.trim());
         if (error) {
           setAuthError(error.message || 'Erro ao realizar cadastro.');
         } else {
@@ -125,7 +152,7 @@ export function Cliente() {
     alert('Perfil atualizado com sucesso no banco de dados!');
   };
 
-  // LOGGED OUT VIEW (Starts logged out by default!)
+  // LOGGED OUT VIEW
   if (!isLoggedIn) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 space-y-6">
@@ -186,20 +213,37 @@ export function Cliente() {
           )}
 
           {authMode === 'register' && (
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Nome Completo</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  placeholder="Seu nome completo"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-                <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Nome Completo</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Seu nome completo"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                </div>
               </div>
-            </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Número de Celular</label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    required
+                    placeholder="(11) 98765-4321"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+            </>
           )}
 
           <div>
@@ -231,6 +275,23 @@ export function Cliente() {
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
           </div>
+
+          {authMode === 'register' && (
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Digite a Senha Escolhida Novamente</label>
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={confirmPasswordInput}
+                  onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -460,6 +521,27 @@ export function Cliente() {
                       type="text"
                       value={profileForm.phone}
                       onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">CPF (Obrigatório para NF)</label>
+                    <input
+                      type="text"
+                      placeholder="000.000.000-00"
+                      value={profileForm.cpf}
+                      onChange={(e) => setProfileForm({ ...profileForm, cpf: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Data de Nascimento</label>
+                    <input
+                      type="date"
+                      value={profileForm.birth_date}
+                      onChange={(e) => setProfileForm({ ...profileForm, birth_date: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-medium"
                     />
                   </div>

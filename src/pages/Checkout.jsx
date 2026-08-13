@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   CreditCard,
@@ -12,36 +12,60 @@ import {
   ArrowLeft,
   Copy,
   Check,
-  Package
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 import { useCart } from '../hooks/useCart';
+import { useAuth } from '../context/AuthContext';
 
 export function Checkout() {
   const { cart, totalPrice, clearCart } = useCart();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
 
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [placedOrderData, setPlacedOrderData] = useState(null);
+  const [validationError, setValidationError] = useState('');
 
   const [customerForm, setCustomerForm] = useState({
-    fullName: 'Maria Oliveira Silva',
-    email: 'maria.oliveira@email.com',
-    cpf: '123.456.789-00',
-    phone: '(11) 98765-4321',
-    cep: '01310-100',
-    address: 'Avenida Paulista',
-    number: '1000',
-    complement: 'Apto 42',
-    neighborhood: 'Bela Vista',
-    city: 'São Paulo',
-    state: 'SP'
+    fullName: '',
+    email: '',
+    cpf: '',
+    birthDate: '',
+    phone: '',
+    cep: '',
+    address: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: ''
   });
+
+  // Pre-fill form from logged-in user profile if available
+  useEffect(() => {
+    if (user || profile) {
+      setCustomerForm((prev) => ({
+        ...prev,
+        fullName: profile?.full_name || profile?.name || prev.fullName,
+        email: user?.email || profile?.email || prev.email,
+        cpf: profile?.cpf || prev.cpf,
+        birthDate: profile?.birth_date || prev.birthDate,
+        phone: profile?.phone || prev.phone,
+        cep: profile?.cep || prev.cep,
+        address: profile?.address || prev.address,
+        neighborhood: profile?.neighborhood || prev.neighborhood,
+        city: profile?.city || prev.city,
+        state: profile?.state || prev.state
+      }));
+    }
+  }, [user, profile]);
 
   const [paymentMethod, setPaymentMethod] = useState('pix');
 
   const [cardForm, setCardForm] = useState({
     cardNumber: '4532 •••• •••• 8892',
-    cardHolder: 'MARIA O SILVA',
+    cardHolder: 'CLIENTE XM',
     expiry: '12/29',
     cvv: '882',
     installments: '1'
@@ -65,6 +89,33 @@ export function Checkout() {
 
   const handlePlaceOrder = (e) => {
     e.preventDefault();
+    setValidationError('');
+
+    // Mandatory Field Validations for Purchase
+    if (!customerForm.fullName.trim()) {
+      setValidationError('Por favor, digite seu nome completo.');
+      return;
+    }
+    if (!customerForm.email.trim()) {
+      setValidationError('Por favor, digite seu e-mail.');
+      return;
+    }
+    if (!customerForm.phone.trim()) {
+      setValidationError('Por favor, informe seu número de celular para contato.');
+      return;
+    }
+    if (!customerForm.cpf.trim() || customerForm.cpf.trim().length < 11) {
+      setValidationError('O CPF é obrigatório para emissão da nota fiscal da compra.');
+      return;
+    }
+    if (!customerForm.birthDate.trim()) {
+      setValidationError('A Data de Nascimento é obrigatória para confirmação do pedido.');
+      return;
+    }
+    if (!customerForm.cep.trim() || !customerForm.address.trim() || !customerForm.number.trim() || !customerForm.city.trim() || !customerForm.state.trim()) {
+      setValidationError('Por favor, preencha o endereço de entrega completo (CEP, Rua, Número, Cidade e Estado).');
+      return;
+    }
 
     const orderNumber = `XM-${Math.floor(100000 + Math.random() * 900000)}`;
     const orderData = {
@@ -105,7 +156,6 @@ export function Checkout() {
   if (isOrderPlaced && placedOrderData) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8 animate-in fade-in duration-300">
-        
         <div className="bg-slate-900 text-white rounded-3xl p-8 text-center space-y-4 border border-slate-800 shadow-xl">
           <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/40">
             <CheckCircle2 className="w-10 h-10" />
@@ -125,7 +175,6 @@ export function Checkout() {
         </div>
 
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-8">
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs border-b border-slate-100 pb-6">
             <div>
               <h4 className="font-extrabold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -134,7 +183,8 @@ export function Checkout() {
               <p className="font-semibold text-slate-800">{placedOrderData.customer.fullName}</p>
               <p className="text-slate-500">{placedOrderData.customer.email}</p>
               <p className="text-slate-500">CPF: {placedOrderData.customer.cpf}</p>
-              <p className="text-slate-500">Tel: {placedOrderData.customer.phone}</p>
+              <p className="text-slate-500">Data de Nasc.: {placedOrderData.customer.birthDate}</p>
+              <p className="text-slate-500">Celular: {placedOrderData.customer.phone}</p>
             </div>
 
             <div>
@@ -142,7 +192,7 @@ export function Checkout() {
                 <MapPin className="w-4 h-4 text-brand-500" /> Endereço de Entrega
               </h4>
               <p className="font-semibold text-slate-800">
-                {placedOrderData.customer.address}, {placedOrderData.customer.number} ({placedOrderData.customer.complement})
+                {placedOrderData.customer.address}, {placedOrderData.customer.number} ({placedOrderData.customer.complement || 'S/C'})
               </p>
               <p className="text-slate-500">
                 {placedOrderData.customer.neighborhood} — {placedOrderData.customer.city}/{placedOrderData.customer.state}
@@ -221,7 +271,6 @@ export function Checkout() {
               Voltar para a Loja
             </Link>
           </div>
-
         </div>
       </div>
     );
@@ -236,7 +285,7 @@ export function Checkout() {
             Finalizar Compra (Checkout)
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Preencha seus dados para concluir o pedido na XM Calçados
+            Preencha seus dados de identificação e entrega para concluir o pedido na XM Calçados
           </p>
         </div>
 
@@ -245,6 +294,13 @@ export function Checkout() {
         </Link>
       </div>
 
+      {validationError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl font-semibold flex items-center gap-2 text-xs">
+          <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+          <span>{validationError}</span>
+        </div>
+      )}
+
       <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         <div className="lg:col-span-8 space-y-8">
@@ -252,16 +308,17 @@ export function Checkout() {
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <User className="w-5 h-5 text-brand-500" />
-              <h2 className="text-base font-extrabold text-slate-900">1. Dados Pessoais</h2>
+              <h2 className="text-base font-extrabold text-slate-900">1. Dados do Cliente (Obrigatórios para a Primeira Compra)</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Nome Completo</label>
+              <div className="sm:col-span-2">
+                <label className="block font-bold text-slate-700 mb-1">Nome Completo *</label>
                 <input
                   type="text"
                   required
                   name="fullName"
+                  placeholder="Nome completo do comprador"
                   value={customerForm.fullName}
                   onChange={handleInputChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -269,11 +326,12 @@ export function Checkout() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">E-mail</label>
+                <label className="block font-bold text-slate-700 mb-1">E-mail *</label>
                 <input
                   type="email"
                   required
                   name="email"
+                  placeholder="seu.email@exemplo.com"
                   value={customerForm.email}
                   onChange={handleInputChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -281,11 +339,25 @@ export function Checkout() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">CPF</label>
+                <label className="block font-bold text-slate-700 mb-1">Celular / WhatsApp *</label>
+                <input
+                  type="tel"
+                  required
+                  name="phone"
+                  placeholder="(11) 98765-4321"
+                  value={customerForm.phone}
+                  onChange={handleInputChange}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">CPF (Obrigatório para NF-e) *</label>
                 <input
                   type="text"
                   required
                   name="cpf"
+                  placeholder="000.000.000-00"
                   value={customerForm.cpf}
                   onChange={handleInputChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -293,12 +365,12 @@ export function Checkout() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Telefone / Celular</label>
+                <label className="block font-bold text-slate-700 mb-1">Data de Nascimento *</label>
                 <input
-                  type="text"
+                  type="date"
                   required
-                  name="phone"
-                  value={customerForm.phone}
+                  name="birthDate"
+                  value={customerForm.birthDate}
                   onChange={handleInputChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
@@ -309,16 +381,17 @@ export function Checkout() {
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <MapPin className="w-5 h-5 text-brand-500" />
-              <h2 className="text-base font-extrabold text-slate-900">2. Endereço de Entrega</h2>
+              <h2 className="text-base font-extrabold text-slate-900">2. Endereço de Entrega (Obrigatório)</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">CEP</label>
+                <label className="block font-bold text-slate-700 mb-1">CEP *</label>
                 <input
                   type="text"
                   required
                   name="cep"
+                  placeholder="00000-000"
                   value={customerForm.cep}
                   onChange={handleInputChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -326,11 +399,12 @@ export function Checkout() {
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block font-bold text-slate-700 mb-1">Logradouro / Rua</label>
+                <label className="block font-bold text-slate-700 mb-1">Logradouro / Rua *</label>
                 <input
                   type="text"
                   required
                   name="address"
+                  placeholder="Ex: Av. Paulista"
                   value={customerForm.address}
                   onChange={handleInputChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -338,11 +412,12 @@ export function Checkout() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Número</label>
+                <label className="block font-bold text-slate-700 mb-1">Número *</label>
                 <input
                   type="text"
                   required
                   name="number"
+                  placeholder="1000"
                   value={customerForm.number}
                   onChange={handleInputChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -354,6 +429,7 @@ export function Checkout() {
                 <input
                   type="text"
                   name="complement"
+                  placeholder="Apto, Bloco..."
                   value={customerForm.complement}
                   onChange={handleInputChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -361,11 +437,12 @@ export function Checkout() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Bairro</label>
+                <label className="block font-bold text-slate-700 mb-1">Bairro *</label>
                 <input
                   type="text"
                   required
                   name="neighborhood"
+                  placeholder="Ex: Bela Vista"
                   value={customerForm.neighborhood}
                   onChange={handleInputChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -373,11 +450,12 @@ export function Checkout() {
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block font-bold text-slate-700 mb-1">Cidade</label>
+                <label className="block font-bold text-slate-700 mb-1">Cidade *</label>
                 <input
                   type="text"
                   required
                   name="city"
+                  placeholder="Ex: São Paulo"
                   value={customerForm.city}
                   onChange={handleInputChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -385,14 +463,15 @@ export function Checkout() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">UF / Estado</label>
+                <label className="block font-bold text-slate-700 mb-1">UF / Estado *</label>
                 <input
                   type="text"
                   required
                   name="state"
+                  placeholder="SP"
                   value={customerForm.state}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 uppercase"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-slate-800 font-medium uppercase focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             </div>
@@ -538,7 +617,6 @@ export function Checkout() {
                 </p>
               </div>
             )}
-
           </div>
 
         </div>
