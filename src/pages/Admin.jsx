@@ -340,13 +340,6 @@ export function Admin() {
             >
               <UserCheck className="w-4 h-4 text-brand-500" /> Entrar no Painel de Admin
             </button>
-
-            {/* Credential Reference Box for Admin */}
-            <div className="mt-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1 text-[11px] text-slate-600">
-              <span className="font-bold text-slate-800 block uppercase tracking-wider text-[10px]">Credenciais Padrão do Admin:</span>
-              <p>Usuário: <strong className="font-mono text-slate-900">admin</strong></p>
-              <p>Senha: <strong className="font-mono text-brand-600">xm-calcados-2026!</strong></p>
-            </div>
           </form>
 
         </div>

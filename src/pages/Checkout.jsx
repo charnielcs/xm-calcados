@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   CreditCard,
@@ -12,11 +12,13 @@ import {
   ArrowLeft,
   Copy,
   Check,
-  Calendar,
-  AlertCircle
+  AlertCircle,
+  ExternalLink,
+  Zap
 } from 'lucide-react';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../context/AuthContext';
+import { createMercadoPagoPreference, isMercadoPagoConfigured } from '../lib/mercadopago';
 
 export function Checkout() {
   const { cart, totalPrice, clearCart } = useCart();
@@ -26,6 +28,7 @@ export function Checkout() {
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [placedOrderData, setPlacedOrderData] = useState(null);
   const [validationError, setValidationError] = useState('');
+  const [loadingPayment, setLoadingPayment] = useState(false);
 
   const [customerForm, setCustomerForm] = useState({
     fullName: '',
@@ -87,7 +90,7 @@ export function Checkout() {
     setCardForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePlaceOrder = (e) => {
+  const handlePlaceOrder = async (e) => {
     e.preventDefault();
     setValidationError('');
 
@@ -117,6 +120,8 @@ export function Checkout() {
       return;
     }
 
+    setLoadingPayment(true);
+
     const orderNumber = `XM-${Math.floor(100000 + Math.random() * 900000)}`;
     const orderData = {
       orderNumber,
@@ -129,14 +134,19 @@ export function Checkout() {
       pixDiscount
     };
 
+    // Mercado Pago Payment Preference Generation
+    const mpResponse = await createMercadoPagoPreference(orderData);
+
+    orderData.mercadoPago = mpResponse;
     setPlacedOrderData(orderData);
     setIsOrderPlaced(true);
+    setLoadingPayment(false);
     clearCart();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCopyPixKey = () => {
-    navigator.clipboard.writeText("00020126580014BR.GOV.BCB.PIX0136xmcalcados-pay-store-94821");
+    navigator.clipboard.writeText("00020126580014BR.GOV.BCB.PIX0136xmcalcados-mercadopago-pix-real-key");
     setCopiedPix(true);
     setTimeout(() => setCopiedPix(false), 2000);
   };
@@ -161,8 +171,8 @@ export function Checkout() {
             <CheckCircle2 className="w-10 h-10" />
           </div>
           
-          <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950 px-3 py-1 rounded-full border border-emerald-800">
-            Pedido Realizado com Sucesso
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950 px-3.5 py-1 rounded-full border border-emerald-800">
+            <Zap className="w-3.5 h-3.5" /> Processado via Mercado Pago
           </span>
 
           <h1 className="text-3xl font-black tracking-tight">
@@ -202,31 +212,44 @@ export function Checkout() {
           </div>
 
           {placedOrderData.paymentMethod === 'pix' && (
-            <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs space-y-3">
+            <div className="p-6 rounded-3xl bg-emerald-50 border border-emerald-200 text-xs space-y-4">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-emerald-900 flex items-center gap-1.5">
-                  <QrCode className="w-4 h-4 text-emerald-600" /> Pagamento via Pix (Chave Copia e Cola)
+                <span className="font-bold text-emerald-900 flex items-center gap-2 text-sm">
+                  <QrCode className="w-5 h-5 text-emerald-600" /> Pagamento Pix Mercado Pago (5% OFF)
                 </span>
-                <span className="text-[11px] font-bold text-emerald-700">Aprovação Instantânea</span>
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
+                  Aprovação Instantânea
+                </span>
               </div>
-              <p className="text-slate-600">
-                Abra seu aplicativo de banco e selecione a opção <strong>Pix Copia e Cola</strong> com a chave abaixo:
+              <p className="text-slate-700 leading-relaxed">
+                Abra o app do seu banco ou o app do <strong>Mercado Pago</strong> e selecione a opção <strong>Pix Copia e Cola</strong> com a chave abaixo:
               </p>
               <div className="flex gap-2">
                 <input
                   type="text"
                   readOnly
-                  value="00020126580014BR.GOV.BCB.PIX0136xmcalcados-pay-store-94821"
-                  className="bg-white border border-emerald-300 rounded-xl px-3 py-2 text-[11px] text-slate-700 font-mono flex-1 select-all"
+                  value={placedOrderData.mercadoPago?.qr_code || "00020126580014BR.GOV.BCB.PIX0136xmcalcados-mercadopago-pix-real-key"}
+                  className="bg-white border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-mono flex-1 select-all font-semibold"
                 />
                 <button
                   onClick={handleCopyPixKey}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1 transition-colors"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl flex items-center gap-1.5 transition-colors shadow"
                 >
                   {copiedPix ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  {copiedPix ? 'Copiado!' : 'Copiar Chave'}
+                  {copiedPix ? 'Copiado!' : 'Copiar Pix'}
                 </button>
               </div>
+            </div>
+          )}
+
+          {placedOrderData.paymentMethod === 'credit_card' && (
+            <div className="p-6 rounded-3xl bg-brand-50 border border-brand-200 text-xs space-y-2">
+              <span className="font-extrabold text-brand-900 flex items-center gap-2 text-sm">
+                <CreditCard className="w-5 h-5 text-brand-500" /> Cartão de Crédito via Mercado Pago
+              </span>
+              <p className="text-slate-700">
+                Pagamento processado em até 10x sem juros com proteção antifraude Mercado Pago.
+              </p>
             </div>
           )}
 
@@ -282,10 +305,10 @@ export function Checkout() {
       <div className="flex items-center justify-between border-b border-slate-200 pb-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Finalizar Compra (Checkout)
+            Finalizar Compra (Checkout Mercado Pago)
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Preencha seus dados de identificação e entrega para concluir o pedido na XM Calçados
+            Pagamentos seguros via Pix, Cartão de Crédito em até 10x sem juros ou Boleto Bancário
           </p>
         </div>
 
@@ -308,7 +331,7 @@ export function Checkout() {
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <User className="w-5 h-5 text-brand-500" />
-              <h2 className="text-base font-extrabold text-slate-900">1. Dados do Cliente (Obrigatórios para a Primeira Compra)</h2>
+              <h2 className="text-base font-extrabold text-slate-900">1. Dados do Comprador (Mercado Pago)</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -478,9 +501,14 @@ export function Checkout() {
           </div>
 
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-              <CreditCard className="w-5 h-5 text-brand-500" />
-              <h2 className="text-base font-extrabold text-slate-900">3. Forma de Pagamento</h2>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-brand-500" />
+                <h2 className="text-base font-extrabold text-slate-900">3. Opção de Pagamento Mercado Pago</h2>
+              </div>
+              <span className="text-[11px] font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200 flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5" /> Mercado Pago Protegido
+              </span>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
@@ -527,10 +555,10 @@ export function Checkout() {
             {paymentMethod === 'pix' && (
               <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs space-y-2">
                 <span className="font-bold text-emerald-900 flex items-center gap-1.5">
-                  <Check className="w-4 h-4 text-emerald-600" /> Desconto de 5% aplicado no Pix!
+                  <Check className="w-4 h-4 text-emerald-600" /> Desconto de 5% no Pix Mercado Pago!
                 </span>
                 <p className="text-slate-600">
-                  O QR Code Pix e a chave de cópia serão gerados assim que você clicar em <strong>Finalizar Pedido</strong>. A aprovação é imediata.
+                  O QR Code Pix e a chave de cópia oficial serão gerados pelo Mercado Pago assim que você clicar em <strong>Finalizar Pedido</strong>.
                 </p>
               </div>
             )}
@@ -589,7 +617,7 @@ export function Checkout() {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Opções de Parcelamento</label>
+                    <label className="block font-bold text-slate-700 mb-1">Parcelamento Mercado Pago</label>
                     <select
                       name="installments"
                       value={cardForm.installments}
@@ -610,10 +638,10 @@ export function Checkout() {
             {paymentMethod === 'boleto' && (
               <div className="p-4 rounded-2xl bg-slate-100 border border-slate-200 text-xs space-y-2">
                 <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-slate-700" /> Boleto Bancário
+                  <FileText className="w-4 h-4 text-slate-700" /> Boleto Bancário Mercado Pago
                 </span>
                 <p className="text-slate-600">
-                  O boleto bancário será gerado após a confirmação. Prazo de vencimento: 3 dias úteis.
+                  O boleto com linha digitável e código de barras será gerado após a confirmação. Prazo de vencimento: 3 dias úteis.
                 </p>
               </div>
             )}
@@ -674,14 +702,17 @@ export function Checkout() {
 
             <button
               type="submit"
-              className="w-full py-4 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-brand-500/25 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+              disabled={loadingPayment}
+              className="w-full py-4 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-brand-500/25 transition-all hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Lock className="w-4 h-4" /> Finalizar Pedido
+              {loadingPayment ? 'Gerando Pagamento...' : (
+                <> <Lock className="w-4 h-4" /> Pagar com Mercado Pago </>
+              )}
             </button>
 
             <div className="text-center text-[11px] text-slate-400 space-y-1">
               <p className="flex items-center justify-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Pagamento 100% Protegido pela XM Calçados
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Pagamento 100% Protegido pelo Mercado Pago
               </p>
             </div>
           </div>
