@@ -1,0 +1,85 @@
+{
+  "storeInfo": {
+    "name": "XM Calçados",
+    "slogan": "Sua loja oficial de calçados online. Tênis, sapatos sociais, sandálias e botas com entrega rápida.",
+    "phone": "0800 777 9696",
+    "email": "atendimento@xmcalcados.com.br",
+    "address": "Av. Paulista, 1000 — São Paulo/SP",
+    "topNotice": "XM Calçados — Loja Oficial | Parcele em até 10x sem juros | Frete Grátis acima de R$ 199",
+    "socials": {
+      "instagram": "https://instagram.com",
+      "facebook": "https://facebook.com",
+      "youtube": "https://youtube.com",
+      "whatsapp": "https://whatsapp.com"
+    }
+  },
+  "themeColors": {
+    "primary": "#ff5500",
+    "secondary": "#3b4268",
+    "darkBg": "#191b2e"
+  },
+  "bannerSlides": [
+    {
+      "id": 1,
+      "tag": "FESTIVAL DE OFERTAS XM",
+      "title": "Tênis Esportivos de Alta Performance",
+      "subtitle": "Até 40% OFF em modelos selecionados com Frete Grátis acima de R$ 199",
+      "ctaText": "Aproveitar Ofertas",
+      "ctaLink": "/catalogo?categoria=Esportivo",
+      "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": 2,
+      "tag": "COLEÇÃO SOCIAL 2026",
+      "title": "Elegância & Conforto em Couro Legítimo",
+      "subtitle": "Sapatos sociais artesanais com parcelamento em até 10x Sem Juros",
+      "ctaText": "Ver Coleção Social",
+      "ctaLink": "/catalogo?categoria=Sapatos Sociais",
+      "image": "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=1000&auto=format&fit=crop&q=80"
+    }
+  ],
+  "featuredCategories": [
+    {
+      "id": 1,
+      "name": "Tênis",
+      "count": "Modelos Exclusivos",
+      "query": "Tênis",
+      "image": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": 2,
+      "name": "Sapatos Sociais",
+      "count": "Couro Legítimo",
+      "query": "Sapatos Sociais",
+      "image": "https://images.unsplash.com/photo-1560343776-96245d5b4618?w=400&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": 3,
+      "name": "Sandálias",
+      "count": "Linha Verão & Comfort",
+      "query": "Sandálias",
+      "image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": 4,
+      "name": "Infantil",
+      "count": "Kids & Teens",
+      "query": "Infantil",
+      "image": "https://images.unsplash.com/photo-1514989940723-e8e51635b782?w=400&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": 5,
+      "name": "Esportivo",
+      "count": "Alta Performance",
+      "query": "Esportivo",
+      "image": "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=400&auto=format&fit=crop&q=80"
+    }
+  ],
+  "homeSections": [
+    { "id": "carousel", "name": "Banner Principal em Carrossel", "enabled": true, "order": 1 },
+    { "id": "categories", "name": "Categorias em Destaque", "enabled": true, "order": 2 },
+    { "id": "bestSellers", "name": "Mais Vendidos (Produtos)", "enabled": true, "order": 3 },
+    { "id": "advantages", "name": "Vantagens & Benefícios da Loja", "enabled": true, "order": 4 },
+    { "id": "newsletter", "name": "Banner de Newsletter", "enabled": true, "order": 5 }
+  ]
+}
