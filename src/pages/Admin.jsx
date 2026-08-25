@@ -27,7 +27,8 @@ import {
   LogOut,
   ShieldCheck,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useSiteConfig } from '../context/SiteConfigContext';
