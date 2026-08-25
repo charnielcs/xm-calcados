@@ -27,10 +27,10 @@ export function ProductProvider({ children }) {
     localStorage.setItem('xm_products', JSON.stringify(products));
   }, [products]);
 
-  // Sync products from Bling ERP
-  const syncWithBling = async (customToken = '') => {
+  // Sync products from Bling ERP (Read-Only)
+  const syncWithBling = async (customToken = '', isTestMode = false) => {
     setIsSyncingBling(true);
-    const result = await fetchBlingProducts(customToken);
+    const result = await fetchBlingProducts(customToken, isTestMode);
 
     if (result.success && result.products) {
       setProducts((prevProducts) => {

@@ -27,11 +27,17 @@ export default async function handler(req, res) {
       customToken ||
       process.env.MERCADOPAGO_ACCESS_TOKEN ||
       process.env.VITE_MERCADOPAGO_ACCESS_TOKEN ||
-      'APP_USR-4875754368873490-081314-239d9335362092441f555a12dcf9f1e3-3612154251'
+      ''
     ).trim();
 
     if (!orderData) {
       return res.status(400).json({ error: 'Dados do pedido ausentes' });
+    }
+
+    if (!accessToken) {
+      return res.status(400).json({
+        error: 'Access Token de PRODUÇÃO do Mercado Pago não configurado. Insira o token em /admin.'
+      });
     }
 
     const cleanCpf = (orderData.customer?.cpf || '').replace(/\D/g, '');

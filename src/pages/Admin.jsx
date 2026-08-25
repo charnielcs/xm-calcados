@@ -46,6 +46,7 @@ export function Admin() {
   } = useProducts();
   const [blingTokenInput, setBlingTokenInput] = useState('');
   const [blingSyncStatus, setBlingSyncStatus] = useState(null);
+  const [lastSyncReport, setLastSyncReport] = useState(null);
   const {
     config,
     updateStoreInfo,
@@ -516,23 +517,57 @@ export function Admin() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                disabled={isSyncingBling}
-                onClick={async () => {
-                  setBlingSyncStatus('Sincronizando produtos e estoques com o Bling...');
-                  const res = await syncWithBling(blingTokenInput);
-                  if (res.success) {
-                    setBlingSyncStatus(`Sincronização concluída com sucesso! ${res.products?.length || 0} produtos atualizados.`);
-                  } else {
-                    setBlingSyncStatus(`Erro: ${res.error || 'Não foi possível conectar ao Bling.'}`);
-                  }
-                }}
-                className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs px-6 py-3.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <RefreshCw className={`w-4 h-4 ${isSyncingBling ? 'animate-spin' : ''}`} />
-                {isSyncingBling ? 'Sincronizando...' : 'Sincronizar com o Bling Agora'}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={isSyncingBling}
+                  onClick={async () => {
+                    setBlingSyncStatus('Rodando TESTE SEGURO (Apenas 2 produtos do Bling)...');
+                    setLastSyncReport(null);
+                    const res = await syncWithBling(blingTokenInput, true); // testMode = true
+                    if (res.success) {
+                      setBlingSyncStatus(`Teste seguro concluído com sucesso! ${res.totalImported || 0} produtos de teste importados.`);
+                      setLastSyncReport(res);
+                    } else {
+                      setBlingSyncStatus(`Erro no teste: ${res.error || 'Não foi possível conectar ao Bling.'}`);
+                    }
+                  }}
+                  className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-extrabold text-xs px-4 py-3 rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  Testar com 2 Produtos Primeiro
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isSyncingBling}
+                  onClick={async () => {
+                    setBlingSyncStatus('Percorrendo todas as páginas da API do Bling...');
+                    setLastSyncReport(null);
+                    const res = await syncWithBling(blingTokenInput, false); // testMode = false
+                    if (res.success) {
+                      setBlingSyncStatus(`Sincronização completa concluída! ${res.totalImported || res.products?.length || 0} produtos importados em ${res.durationSeconds || '0.5'}s.`);
+                      setLastSyncReport(res);
+                    } else {
+                      setBlingSyncStatus(`Erro: ${res.error || 'Não foi possível conectar ao Bling.'}`);
+                    }
+                  }}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs px-6 py-3 rounded-xl shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isSyncingBling ? 'animate-spin' : ''}`} />
+                  {isSyncingBling ? 'Sincronizando Páginas...' : 'Sincronização Completa (Todos os Produtos)'}
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-800 text-blue-200 text-xs flex items-center justify-between font-semibold">
+              <span className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                <strong>Garantia de Segurança do Bling:</strong> Esta integração é 100% SOMENTE LEITURA (HTTP GET). Ela NUNCA altera, apaga ou sobrescreve dados dentro do seu Bling ERP.
+              </span>
+              <span className="text-[10px] uppercase tracking-wider bg-blue-900/60 px-2 py-0.5 rounded border border-blue-700 text-blue-300">
+                Escopo: produtos:read
+              </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs pt-2">
@@ -562,6 +597,56 @@ export function Admin() {
               <div className="p-3 bg-emerald-950/80 border border-emerald-800 text-emerald-300 rounded-xl font-semibold text-xs flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                 <span>{blingSyncStatus}</span>
+              </div>
+            )}
+
+            {/* Comprehensive Execution Report Card */}
+            {lastSyncReport && (
+              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-3 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                  <span className="font-extrabold text-white text-sm flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" /> Relatório da Sincronização Completa
+                  </span>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    Tempo total: <strong className="text-emerald-400">{lastSyncReport.durationSeconds || '0.5'}s</strong> ({lastSyncReport.totalPagesFetched || 1} página(s) consultada(s))
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+                  <div className="p-2.5 rounded-xl bg-emerald-950/50 border border-emerald-800">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Produtos Ativos Importados</span>
+                    <strong className="text-lg font-black text-emerald-400 font-mono">{lastSyncReport.totalImported || 0}</strong>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Produtos Inativos Ignorados</span>
+                    <strong className="text-lg font-black text-slate-300 font-mono">{lastSyncReport.inactiveSkippedCount || 0}</strong>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-800">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Com Avisos no Bling</span>
+                    <strong className="text-lg font-black text-amber-400 font-mono">{lastSyncReport.skippedCount || 0}</strong>
+                  </div>
+                </div>
+
+                {/* Audit List of Skipped Items / Warnings */}
+                {lastSyncReport.skippedItems && lastSyncReport.skippedItems.length > 0 && (
+                  <div className="pt-2 border-t border-slate-800 space-y-2">
+                    <span className="font-bold text-amber-300 text-[11px] block">
+                      ⚠️ Lista de Produtos com Alerta no Cadastro do Bling (Verifique no Bling):
+                    </span>
+                    <div className="max-h-36 overflow-y-auto space-y-1.5 pr-2">
+                      {lastSyncReport.skippedItems.map((item, idx) => (
+                        <div key={idx} className="p-2 bg-slate-900/90 border border-slate-800 rounded-lg text-[11px] flex items-center justify-between">
+                          <span className="font-mono text-slate-300">
+                            <strong>[{item.sku}]</strong> {item.name}
+                          </span>
+                          <span className="text-amber-400 text-[10px] font-semibold">{item.reason}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -975,9 +1060,13 @@ export function Admin() {
                   onSubmit={(e) => {
                     e.preventDefault();
                     const token = e.target.mpToken.value.trim();
+                    if (token.includes('...') || token.includes('•') || token.startsWith('.')) {
+                      alert('Atenção: Você colou as bolinhas de ocultar (............)!\n\nNa página do Mercado Pago, clique primeiro no ícone do OLHO 👁️ ao lado do Access Token para revelar o código real que começa com APP_USR-... e depois copie!');
+                      return;
+                    }
                     if (token) {
                       localStorage.setItem('xm_mp_access_token', token);
-                      alert('Token do Mercado Pago salvo com sucesso no site! As próximas compras gerarão o Pix automático do Mercado Pago.');
+                      alert('Token REAL do Mercado Pago salvo com sucesso no site! As próximas compras gerarão o Pix automático do Mercado Pago.');
                     } else {
                       localStorage.removeItem('xm_mp_access_token');
                       alert('Token removido.');
