@@ -11,7 +11,12 @@ export const isMercadoPagoConfigured = Boolean(
 export async function createMercadoPagoPreference(orderData) {
   // Read Access Token from VITE_ prefix or localStorage admin setting
   const savedAdminToken = typeof localStorage !== 'undefined' ? localStorage.getItem('xm_mp_access_token') : '';
-  const accessToken = import.meta.env.VITE_MERCADOPAGO_ACCESS_TOKEN || import.meta.env.MERCADOPAGO_ACCESS_TOKEN || savedAdminToken || '';
+  const accessToken = (
+    import.meta.env.VITE_MERCADOPAGO_ACCESS_TOKEN ||
+    import.meta.env.MERCADOPAGO_ACCESS_TOKEN ||
+    savedAdminToken ||
+    ''
+  ).trim();
 
   const cleanCpf = (orderData.customer.cpf || '').replace(/\D/g, '');
   const nameParts = (orderData.customer.fullName || 'Cliente XM').trim().split(' ');
@@ -28,6 +33,59 @@ export async function createMercadoPagoPreference(orderData) {
     };
   }
 
+  // 1. Try Direct Pix API v1/payments for Pix payment method
+  if (orderData.paymentMethod === 'pix') {
+    try {
+      const pixPayload = {
+        transaction_amount: Number(orderData.totalAmount.toFixed(2)),
+        description: `Pedido ${orderData.orderNumber} - XM Calçados`,
+        payment_method_id: 'pix',
+        external_reference: orderData.orderNumber,
+        payer: {
+          email: orderData.customer.email,
+          first_name: firstName,
+          last_name: lastName,
+          identification: {
+            type: 'CPF',
+            number: cleanCpf.length >= 11 ? cleanCpf : '00000000000'
+          }
+        }
+      };
+
+      const response = await fetch('https://api.mercadopago.com/v1/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          'X-Idempotency-Key': `${orderData.orderNumber}-${Date.now()}`
+        },
+        body: JSON.stringify(pixPayload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const fullQrCode = data.point_of_interaction?.transaction_data?.qr_code || '';
+        const qrCodeBase64 = data.point_of_interaction?.transaction_data?.qr_code_base64 || '';
+        const ticketUrl = data.point_of_interaction?.transaction_data?.ticket_url || '';
+
+        if (fullQrCode && fullQrCode.length > 50) {
+          return {
+            id: data.id,
+            status: data.status,
+            qr_code: fullQrCode,
+            qr_code_base64: qrCodeBase64,
+            ticket_url: ticketUrl,
+            init_point: ticketUrl,
+            isMock: false
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('Fallback para Checkout Preference:', e);
+    }
+  }
+
+  // 2. Fallback to Checkout Preferences (Checkout Pro)
   try {
     const preferencePayload = {
       items: orderData.items.map((item) => ({
@@ -66,7 +124,7 @@ export async function createMercadoPagoPreference(orderData) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken.trim()}`
+        'Authorization': `Bearer ${accessToken}`
       },
       body: JSON.stringify(preferencePayload)
     });
@@ -85,7 +143,7 @@ export async function createMercadoPagoPreference(orderData) {
       id: data.id,
       init_point: data.init_point,
       sandbox_init_point: data.sandbox_init_point,
-      qr_code: `00020126580014BR.GOV.BCB.PIX0136mp-${data.id.substring(0, 20)}`,
+      qr_code: '', // Will prompt customer to click "Abrir Tela Oficial do Mercado Pago"
       isMock: false
     };
   } catch (error) {

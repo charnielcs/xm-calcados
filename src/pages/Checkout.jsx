@@ -236,35 +236,41 @@ export function Checkout() {
                 </div>
               )}
 
-              <p className="text-slate-700 leading-relaxed text-center sm:text-left">
-                Abra o app do seu banco ou o app do <strong>Mercado Pago</strong> e selecione a opção <strong>Pix Copia e Cola</strong> com a chave abaixo:
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={placedOrderData.mercadoPago?.qr_code || "00020126580014BR.GOV.BCB.PIX0136xmcalcados-mercadopago-pix-real-key"}
-                  className="bg-white border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-mono flex-1 select-all font-semibold"
-                />
-                <button
-                  onClick={handleCopyPixKey}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow"
-                >
-                  {copiedPix ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  {copiedPix ? 'Copiado!' : 'Copiar Pix'}
-                </button>
-              </div>
+              {placedOrderData.mercadoPago?.qr_code && placedOrderData.mercadoPago.qr_code.length > 50 && (
+                <>
+                  <p className="text-slate-700 leading-relaxed text-center sm:text-left">
+                    Abra o app do seu banco ou o app do <strong>Mercado Pago</strong> e selecione a opção <strong>Pix Copia e Cola</strong> com a chave abaixo:
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={placedOrderData.mercadoPago.qr_code}
+                      className="bg-white border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-mono flex-1 select-all font-semibold"
+                    />
+                    <button
+                      onClick={handleCopyPixKey}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow"
+                    >
+                      {copiedPix ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      {copiedPix ? 'Copiado!' : 'Copiar Pix'}
+                    </button>
+                  </div>
+                </>
+              )}
 
-              {(placedOrderData.mercadoPago?.init_point || placedOrderData.mercadoPago?.sandbox_init_point) && (
-                <div className="pt-3 border-t border-emerald-200 text-center">
+              {(placedOrderData.mercadoPago?.init_point || placedOrderData.mercadoPago?.sandbox_init_point || placedOrderData.mercadoPago?.ticket_url) && (
+                <div className="pt-3 border-t border-emerald-200 text-center space-y-2">
+                  <p className="text-slate-600 text-xs font-semibold">
+                    Clique no botão abaixo para abrir o QR Code Pix oficial e pagar na tela do Mercado Pago:
+                  </p>
                   <a
-                    href={placedOrderData.mercadoPago.init_point || placedOrderData.mercadoPago.sandbox_init_point}
+                    href={placedOrderData.mercadoPago.init_point || placedOrderData.mercadoPago.sandbox_init_point || placedOrderData.mercadoPago.ticket_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs px-6 py-3 rounded-xl shadow-md transition-all hover:scale-105"
+                    className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-7 py-3.5 rounded-xl shadow-lg transition-all hover:scale-105"
                   >
-                    <ExternalLink className="w-4 h-4 text-emerald-400" /> Abri Tela Oficial de Pagamento do Mercado Pago
+                    <ExternalLink className="w-4 h-4" /> Pagar Pix na Tela Oficial do Mercado Pago
                   </a>
                 </div>
               )}
