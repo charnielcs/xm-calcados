@@ -239,6 +239,7 @@ export function Checkout() {
               <p className="text-slate-700 leading-relaxed text-center sm:text-left">
                 Abra o app do seu banco ou o app do <strong>Mercado Pago</strong> e selecione a opção <strong>Pix Copia e Cola</strong> com a chave abaixo:
               </p>
+              
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
@@ -254,6 +255,19 @@ export function Checkout() {
                   {copiedPix ? 'Copiado!' : 'Copiar Pix'}
                 </button>
               </div>
+
+              {(placedOrderData.mercadoPago?.init_point || placedOrderData.mercadoPago?.sandbox_init_point) && (
+                <div className="pt-3 border-t border-emerald-200 text-center">
+                  <a
+                    href={placedOrderData.mercadoPago.init_point || placedOrderData.mercadoPago.sandbox_init_point}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs px-6 py-3 rounded-xl shadow-md transition-all hover:scale-105"
+                  >
+                    <ExternalLink className="w-4 h-4 text-emerald-400" /> Abri Tela Oficial de Pagamento do Mercado Pago
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
