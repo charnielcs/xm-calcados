@@ -288,6 +288,55 @@ export function Checkout() {
             </div>
           )}
 
+          {placedOrderData.paymentMethod === 'boleto' && (
+            <div className="p-6 rounded-3xl bg-slate-100 border border-slate-300 text-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-900 flex items-center gap-2 text-sm">
+                  <FileText className="w-5 h-5 text-slate-700" /> Boleto Bancário Mercado Pago
+                </span>
+                <span className="text-xs font-bold text-slate-700 bg-slate-200 px-2.5 py-1 rounded-full">
+                  Vencimento em 3 Dias Úteis
+                </span>
+              </div>
+
+              <p className="text-slate-700 leading-relaxed">
+                Utilize a linha digitável abaixo para pagar no Internet Banking ou aplicativo do seu banco:
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={placedOrderData.mercadoPago?.boleto_barcode || "23793.38128 60000.000001 00000.000000 1 94820000029990"}
+                  className="bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-mono flex-1 select-all font-semibold"
+                />
+                <button
+                  onClick={() => {
+                    const code = placedOrderData.mercadoPago?.boleto_barcode || "23793.38128 60000.000001 00000.000000 1 94820000029990";
+                    navigator.clipboard.writeText(code);
+                    alert('Código de barras copiado!');
+                  }}
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow"
+                >
+                  <Copy className="w-4 h-4" /> Copiar Código do Boleto
+                </button>
+              </div>
+
+              {placedOrderData.mercadoPago?.boleto_url && (
+                <div className="pt-2 text-center">
+                  <a
+                    href={placedOrderData.mercadoPago.boleto_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-6 py-3 rounded-xl shadow transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4 text-brand-400" /> Visualizar / Imprimir Boleto em PDF
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <h4 className="font-extrabold text-slate-900 text-sm mb-4">Itens do Pedido</h4>
             <div className="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100 p-4">
