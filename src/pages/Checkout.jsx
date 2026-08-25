@@ -18,11 +18,14 @@ import {
 } from 'lucide-react';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../context/AuthContext';
+import { useSiteConfig } from '../context/SiteConfigContext';
 import { createMercadoPagoPreference, isMercadoPagoConfigured } from '../lib/mercadopago';
 
 export function Checkout() {
   const { cart, totalPrice, clearCart } = useCart();
   const { user, profile } = useAuth();
+  const { config } = useSiteConfig();
+  const pixConfig = config.pixSettings || {};
   const navigate = useNavigate();
 
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
@@ -146,7 +149,10 @@ export function Checkout() {
   };
 
   const handleCopyPixKey = () => {
-    const pixCode = placedOrderData?.mercadoPago?.qr_code || "00020126580014BR.GOV.BCB.PIX0136xmcalcados-mercadopago-pix-real-key";
+    const storePixKey = pixConfig.key || 'atendimento@xmcalcados.com.br';
+    const pixCode = placedOrderData?.mercadoPago?.qr_code && placedOrderData.mercadoPago.qr_code.length > 50
+      ? placedOrderData.mercadoPago.qr_code
+      : storePixKey;
     navigator.clipboard.writeText(pixCode);
     setCopiedPix(true);
     setTimeout(() => setCopiedPix(false), 2000);
@@ -213,64 +219,52 @@ export function Checkout() {
           </div>
 
           {placedOrderData.paymentMethod === 'pix' && (
-            <div className="p-6 rounded-3xl bg-emerald-50 border border-emerald-200 text-xs space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-emerald-900 flex items-center gap-2 text-sm">
-                  <QrCode className="w-5 h-5 text-emerald-600" /> Pagamento Pix Mercado Pago (5% OFF)
+            <div className="p-6 rounded-3xl bg-emerald-50 border border-emerald-200 text-xs space-y-5">
+              <div className="flex items-center justify-between border-b border-emerald-200/60 pb-3">
+                <span className="font-extrabold text-emerald-950 flex items-center gap-2 text-sm">
+                  <QrCode className="w-5 h-5 text-emerald-600" /> Pagamento Pix Oficial da Loja (5% OFF)
                 </span>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
-                  Aprovação Instantânea
+                <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300">
+                  Desconto de 5% Aplicado
                 </span>
               </div>
 
-              {placedOrderData.mercadoPago?.qr_code_base64 && (
-                <div className="bg-white p-4 rounded-2xl border border-emerald-200 text-center w-fit mx-auto shadow-sm space-y-2">
-                  <img
-                    src={`data:image/jpeg;base64,${placedOrderData.mercadoPago.qr_code_base64}`}
-                    alt="QR Code Pix Mercado Pago"
-                    className="w-48 h-48 mx-auto object-contain"
-                  />
-                  <span className="text-[11px] text-slate-500 font-semibold block">
-                    Escaneie com o app do seu banco
+              <div className="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm space-y-3">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 block">Chave Pix Oficial XM Calçados:</span>
+                    <strong className="text-sm font-mono text-slate-900 font-black">{pixConfig.key || 'atendimento@xmcalcados.com.br'}</strong>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Tipo: <strong>{pixConfig.keyType || 'E-mail'}</strong> • Favorecido: <strong>{pixConfig.receiverName || 'XM Calçados'}</strong>
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleCopyPixKey}
+                    className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:scale-105"
+                  >
+                    {copiedPix ? <Check className="w-4 h-4 text-emerald-200" /> : <Copy className="w-4 h-4" />}
+                    {copiedPix ? 'Chave Pix Copiada!' : 'Copiar Chave Pix'}
+                  </button>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center gap-2 text-[11px] text-slate-600 font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>
+                    Após realizar a transferência no app do seu banco, o pedido é confirmado instantaneamente!
                   </span>
                 </div>
-              )}
-
-              {placedOrderData.mercadoPago?.qr_code && placedOrderData.mercadoPago.qr_code.length > 50 && (
-                <>
-                  <p className="text-slate-700 leading-relaxed text-center sm:text-left">
-                    Abra o app do seu banco ou o app do <strong>Mercado Pago</strong> e selecione a opção <strong>Pix Copia e Cola</strong> com a chave abaixo:
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={placedOrderData.mercadoPago.qr_code}
-                      className="bg-white border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-mono flex-1 select-all font-semibold"
-                    />
-                    <button
-                      onClick={handleCopyPixKey}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow"
-                    >
-                      {copiedPix ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                      {copiedPix ? 'Copiado!' : 'Copiar Pix'}
-                    </button>
-                  </div>
-                </>
-              )}
+              </div>
 
               {(placedOrderData.mercadoPago?.init_point || placedOrderData.mercadoPago?.sandbox_init_point || placedOrderData.mercadoPago?.ticket_url) && (
-                <div className="pt-3 border-t border-emerald-200 text-center space-y-2">
-                  <p className="text-slate-600 text-xs font-semibold">
-                    Clique no botão abaixo para abrir o QR Code Pix oficial e pagar na tela do Mercado Pago:
-                  </p>
+                <div className="pt-2 text-center">
                   <a
                     href={placedOrderData.mercadoPago.init_point || placedOrderData.mercadoPago.sandbox_init_point || placedOrderData.mercadoPago.ticket_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-7 py-3.5 rounded-xl shadow-lg transition-all hover:scale-105"
+                    className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs px-6 py-3 rounded-xl shadow transition-colors"
                   >
-                    <ExternalLink className="w-4 h-4" /> Pagar Pix na Tela Oficial do Mercado Pago
+                    <ExternalLink className="w-4 h-4 text-emerald-400" /> Pagar via Checkout Mercado Pago (Opcional)
                   </a>
                 </div>
               )}

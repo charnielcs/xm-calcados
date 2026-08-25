@@ -18,6 +18,13 @@
     "secondary": "#3b4268",
     "darkBg": "#191b2e"
   },
+  "pixSettings": {
+    "key": "atendimento@xmcalcados.com.br",
+    "keyType": "E-mail",
+    "receiverName": "XM Calçados Ltda",
+    "bankName": "Sua Conta Bancária Oficial (Pix Direto / Asaas / PagBank)",
+    "city": "SAO PAULO"
+  },
   "bannerSlides": [
     {
       "id": 1,

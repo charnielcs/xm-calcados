@@ -14,7 +14,8 @@ export function SiteConfigProvider({ children }) {
           ...initialConfig,
           ...parsed,
           storeInfo: { ...initialConfig.storeInfo, ...(parsed.storeInfo || {}) },
-          themeColors: { ...initialConfig.themeColors, ...(parsed.themeColors || {}) }
+          themeColors: { ...initialConfig.themeColors, ...(parsed.themeColors || {}) },
+          pixSettings: { ...initialConfig.pixSettings, ...(parsed.pixSettings || {}) }
         };
       } catch (e) {
         console.error('Erro ao ler configuracoes do site', e);
@@ -51,6 +52,13 @@ export function SiteConfigProvider({ children }) {
     }));
   };
 
+  const updatePixSettings = (newPixSettings) => {
+    setConfig((prev) => ({
+      ...prev,
+      pixSettings: { ...prev.pixSettings, ...newPixSettings }
+    }));
+  };
+
   const updateBannerSlides = (newSlides) => {
     setConfig((prev) => ({
       ...prev,
@@ -84,6 +92,7 @@ export function SiteConfigProvider({ children }) {
         updateConfig,
         updateStoreInfo,
         updateThemeColors,
+        updatePixSettings,
         updateBannerSlides,
         updateFeaturedCategories,
         updateHomeSections,

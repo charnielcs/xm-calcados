@@ -49,11 +49,19 @@ export function Admin() {
     config,
     updateStoreInfo,
     updateThemeColors,
+    updatePixSettings,
     updateBannerSlides,
     updateFeaturedCategories,
     updateHomeSections,
     resetConfig
   } = useSiteConfig();
+
+  const [pixForm, setPixForm] = useState(config.pixSettings || {
+    key: 'atendimento@xmcalcados.com.br',
+    keyType: 'E-mail',
+    receiverName: 'XM Calçados Ltda',
+    bankName: 'Sua Conta Bancária (Pix Direto / Asaas / PagBank)'
+  });
 
   // --- ADMIN AUTHENTICATION STATE ---
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
@@ -222,6 +230,12 @@ export function Admin() {
     e.preventDefault();
     updateThemeColors(colorsForm);
     alert('Cores do tema atualizadas em tempo real em todo o site!');
+  };
+
+  const handleSavePixSettings = (e) => {
+    e.preventDefault();
+    updatePixSettings(pixForm);
+    alert('Chave Pix oficial da loja salva com sucesso! Os clientes usarão essa chave nas compras por Pix.');
   };
 
   const handleSaveSlides = (e) => {
@@ -710,6 +724,17 @@ export function Admin() {
             </button>
 
             <button
+              onClick={() => setLayoutSubTab('pixSettings')}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all ${
+                layoutSubTab === 'pixSettings'
+                  ? 'bg-brand-500 text-white shadow'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <Lock className="w-4 h-4" /> Chave Pix da Loja
+            </button>
+
+            <button
               onClick={() => setLayoutSubTab('storeInfo')}
               className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all ${
                 layoutSubTab === 'storeInfo'
@@ -925,6 +950,116 @@ export function Admin() {
                 Aplicar Novas Cores no Site
               </button>
             </form>
+          )}
+
+          {layoutSubTab === 'pixSettings' && (
+            <div className="space-y-6">
+              {/* Mercado Pago Access Token Config Card */}
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+                <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                      <Zap className="w-5 h-5 text-blue-600" /> Mercado Pago (Pix Automático com Valor Predefinido)
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Insira o seu <strong>Access Token de Produção</strong> do Mercado Pago para gerar Pix automático com o valor exato travado na compra do cliente (ex: R$ 299,90).
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
+                    Mercado Pago Ativo
+                  </span>
+                </div>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const token = e.target.mpToken.value.trim();
+                    if (token) {
+                      localStorage.setItem('xm_mp_access_token', token);
+                      alert('Token do Mercado Pago salvo com sucesso no site! As próximas compras gerarão o Pix automático do Mercado Pago.');
+                    } else {
+                      localStorage.removeItem('xm_mp_access_token');
+                      alert('Token removido.');
+                    }
+                  }}
+                  className="space-y-4 text-xs"
+                >
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Access Token do Mercado Pago (Começa com APP_USR-...)</label>
+                    <input
+                      type="password"
+                      name="mpToken"
+                      defaultValue={localStorage.getItem('xm_mp_access_token') || ''}
+                      placeholder="Cole aqui seu Access Token (ex: APP_USR-342f9aeb-9412-4219...)"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-3.5 font-mono text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Você pode pegar esse token no seu painel em: <strong>mercadopago.com.br/developers ➔ Credenciais de produção ➔ Access Token</strong>.
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs px-6 py-3.5 rounded-xl shadow-md transition-all hover:scale-[1.01]"
+                  >
+                    Salvar Token do Mercado Pago no Site
+                  </button>
+                </form>
+              </div>
+
+              {/* Direct Store Pix Key Config Card */}
+              <form onSubmit={handleSavePixSettings} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+                <div className="border-b border-slate-100 pb-4">
+                  <h3 className="text-lg font-black text-slate-900">Chave Pix Direta da Loja (Alternativa para Conta Bancária)</h3>
+                  <p className="text-xs text-slate-500">Chave Pix para onde o valor das compras será enviado caso você prefira transferência direta no seu banco.</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold text-slate-700 mb-1">Chave Pix da Loja (E-mail, CNPJ, Celular ou Chave Aleatória)</label>
+                    <input
+                      type="text"
+                      value={pixForm.key}
+                      onChange={(e) => setPixForm({ ...pixForm, key: e.target.value })}
+                      placeholder="Ex: atendimento@xmcalcados.com.br"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-mono font-bold text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Tipo de Chave Pix</label>
+                    <select
+                      value={pixForm.keyType}
+                      onChange={(e) => setPixForm({ ...pixForm, keyType: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold"
+                    >
+                      <option value="E-mail">E-mail</option>
+                      <option value="CNPJ">CNPJ</option>
+                      <option value="Celular">Celular</option>
+                      <option value="Chave Aleatória">Chave Aleatória</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Nome do Favorecido / Razão Social</label>
+                    <input
+                      type="text"
+                      value={pixForm.receiverName}
+                      onChange={(e) => setPixForm({ ...pixForm, receiverName: e.target.value })}
+                      placeholder="Ex: XM Calçados Ltda"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-6 py-3 rounded-xl shadow transition-all"
+                >
+                  Salvar Chave Pix Alternativa
+                </button>
+              </form>
+            </div>
           )}
 
           {layoutSubTab === 'storeInfo' && (
