@@ -7,17 +7,18 @@ export const isMercadoPagoConfigured = Boolean(
 
 /**
  * Creates Mercado Pago Payment Checkout Link & Preference (PIX, Credit Card, Boleto)
- * Bulletproof against CORS & browser restrictions
  */
 export async function createMercadoPagoPreference(orderData) {
-  const accessToken = import.meta.env.MERCADOPAGO_ACCESS_TOKEN || import.meta.env.VITE_MERCADOPAGO_ACCESS_TOKEN || '';
+  // Read Access Token from VITE_ prefix or localStorage admin setting
+  const savedAdminToken = typeof localStorage !== 'undefined' ? localStorage.getItem('xm_mp_access_token') : '';
+  const accessToken = import.meta.env.VITE_MERCADOPAGO_ACCESS_TOKEN || import.meta.env.MERCADOPAGO_ACCESS_TOKEN || savedAdminToken || '';
 
   const cleanCpf = (orderData.customer.cpf || '').replace(/\D/g, '');
   const nameParts = (orderData.customer.fullName || 'Cliente XM').trim().split(' ');
   const firstName = nameParts[0] || 'Cliente';
   const lastName = nameParts.slice(1).join(' ') || 'XM';
 
-  // Demo fallback mode if Access Token is not set in Vercel env
+  // Demo fallback mode if Access Token is missing
   if (!accessToken) {
     return {
       id: `mp_pref_${Date.now()}`,
@@ -65,7 +66,7 @@ export async function createMercadoPagoPreference(orderData) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
+        'Authorization': `Bearer ${accessToken.trim()}`
       },
       body: JSON.stringify(preferencePayload)
     });
