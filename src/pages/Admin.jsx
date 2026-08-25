@@ -26,13 +26,25 @@ import {
   UserCheck,
   LogOut,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useSiteConfig } from '../context/SiteConfigContext';
 
 export function Admin() {
-  const { products, addProduct, updateProduct, deleteProduct, resetProducts } = useProducts();
+  const {
+    products,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    resetProducts,
+    syncWithBling,
+    isSyncingBling,
+    lastBlingSync
+  } = useProducts();
+  const [blingTokenInput, setBlingTokenInput] = useState('');
+  const [blingSyncStatus, setBlingSyncStatus] = useState(null);
   const {
     config,
     updateStoreInfo,
@@ -465,6 +477,78 @@ export function Admin() {
                 <Award className="w-6 h-6" />
               </div>
             </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* BLING ERP SYNCHRONIZATION CARD */}
+          {/* ========================================================================= */}
+          <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 text-white rounded-3xl p-6 sm:p-7 border border-slate-800 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-black text-lg shadow-inner">
+                  <RefreshCw className={`w-6 h-6 ${isSyncingBling ? 'animate-spin text-emerald-400' : ''}`} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-800">
+                      Bling ERP v3 API
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      Estoque & Produtos Sincronizados
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-black text-white">Sincronização com o Bling ERP</h3>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={isSyncingBling}
+                onClick={async () => {
+                  setBlingSyncStatus('Sincronizando produtos e estoques com o Bling...');
+                  const res = await syncWithBling(blingTokenInput);
+                  if (res.success) {
+                    setBlingSyncStatus(`Sincronização concluída com sucesso! ${res.products?.length || 0} produtos atualizados.`);
+                  } else {
+                    setBlingSyncStatus(`Erro: ${res.error || 'Não foi possível conectar ao Bling.'}`);
+                  }
+                }}
+                className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs px-6 py-3.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${isSyncingBling ? 'animate-spin' : ''}`} />
+                {isSyncingBling ? 'Sincronizando...' : 'Sincronizar com o Bling Agora'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs pt-2">
+              <div className="md:col-span-2 space-y-1.5">
+                <label className="block font-bold text-slate-300">Chave API v3 do Bling (Opcional - Ou insira no .env na Vercel)</label>
+                <input
+                  type="password"
+                  placeholder="Insira seu Token API v3 do Bling (ex: 88f2a9...)"
+                  value={blingTokenInput}
+                  onChange={(e) => setBlingTokenInput(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 px-3 text-slate-200 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="bg-slate-950/60 rounded-2xl p-3 border border-slate-800 flex flex-col justify-center text-xs space-y-1">
+                <span className="text-slate-400 font-semibold">Última Sincronização:</span>
+                <strong className="text-emerald-400 font-mono text-xs">
+                  {lastBlingSync ? new Date(lastBlingSync).toLocaleString('pt-BR') : 'Nunca sincronizado'}
+                </strong>
+                <span className="text-[11px] text-slate-400">
+                  Estoque zerado = Marcado automaticamente como "Indisponível"
+                </span>
+              </div>
+            </div>
+
+            {blingSyncStatus && (
+              <div className="p-3 bg-emerald-950/80 border border-emerald-800 text-emerald-300 rounded-xl font-semibold text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span>{blingSyncStatus}</span>
+              </div>
+            )}
           </div>
 
           <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">

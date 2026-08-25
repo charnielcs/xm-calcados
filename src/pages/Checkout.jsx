@@ -146,7 +146,8 @@ export function Checkout() {
   };
 
   const handleCopyPixKey = () => {
-    navigator.clipboard.writeText("00020126580014BR.GOV.BCB.PIX0136xmcalcados-mercadopago-pix-real-key");
+    const pixCode = placedOrderData?.mercadoPago?.qr_code || "00020126580014BR.GOV.BCB.PIX0136xmcalcados-mercadopago-pix-real-key";
+    navigator.clipboard.writeText(pixCode);
     setCopiedPix(true);
     setTimeout(() => setCopiedPix(false), 2000);
   };
@@ -221,10 +222,24 @@ export function Checkout() {
                   Aprovação Instantânea
                 </span>
               </div>
-              <p className="text-slate-700 leading-relaxed">
+
+              {placedOrderData.mercadoPago?.qr_code_base64 && (
+                <div className="bg-white p-4 rounded-2xl border border-emerald-200 text-center w-fit mx-auto shadow-sm space-y-2">
+                  <img
+                    src={`data:image/jpeg;base64,${placedOrderData.mercadoPago.qr_code_base64}`}
+                    alt="QR Code Pix Mercado Pago"
+                    className="w-48 h-48 mx-auto object-contain"
+                  />
+                  <span className="text-[11px] text-slate-500 font-semibold block">
+                    Escaneie com o app do seu banco
+                  </span>
+                </div>
+              )}
+
+              <p className="text-slate-700 leading-relaxed text-center sm:text-left">
                 Abra o app do seu banco ou o app do <strong>Mercado Pago</strong> e selecione a opção <strong>Pix Copia e Cola</strong> com a chave abaixo:
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   readOnly
@@ -233,7 +248,7 @@ export function Checkout() {
                 />
                 <button
                   onClick={handleCopyPixKey}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl flex items-center gap-1.5 transition-colors shadow"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow"
                 >
                   {copiedPix ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   {copiedPix ? 'Copiado!' : 'Copiar Pix'}

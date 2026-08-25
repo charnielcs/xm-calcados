@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useContext } from 'react';
 import initialProductsData from '../data/products.json';
+import { fetchBlingProducts } from '../lib/bling';
 
 export const ProductContext = createContext();
 
@@ -16,9 +17,63 @@ export function ProductProvider({ children }) {
     return initialProductsData;
   });
 
+  const [lastBlingSync, setLastBlingSync] = useState(() => {
+    return localStorage.getItem('xm_last_bling_sync') || null;
+  });
+
+  const [isSyncingBling, setIsSyncingBling] = useState(false);
+
   useEffect(() => {
     localStorage.setItem('xm_products', JSON.stringify(products));
   }, [products]);
+
+  // Sync products from Bling ERP
+  const syncWithBling = async (customToken = '') => {
+    setIsSyncingBling(true);
+    const result = await fetchBlingProducts(customToken);
+
+    if (result.success && result.products) {
+      setProducts((prevProducts) => {
+        const blingSkus = new Set(result.products.map((p) => p.sku || p.id));
+
+        // Update existing products or add new Bling items
+        const updatedExisting = prevProducts.map((existing) => {
+          const matchedBlingItem = result.products.find(
+            (b) => (b.sku && b.sku === existing.sku) || b.id === existing.id
+          );
+
+          if (matchedBlingItem) {
+            return {
+              ...existing,
+              name: matchedBlingItem.name,
+              price: matchedBlingItem.price,
+              originalPrice: matchedBlingItem.originalPrice || matchedBlingItem.price,
+              category: matchedBlingItem.category,
+              inStock: matchedBlingItem.inStock, // Auto marks "Indisponível" when stock is zero!
+              stockQuantity: matchedBlingItem.stockQuantity,
+              lastSyncedAt: new Date().toISOString()
+            };
+          }
+          return existing;
+        });
+
+        // Find brand new items from Bling not yet in store
+        const existingSkus = new Set(prevProducts.map((p) => p.sku || p.id));
+        const newBlingItems = result.products.filter(
+          (b) => !existingSkus.has(b.sku) && !existingSkus.has(b.id)
+        );
+
+        return [...newBlingItems, ...updatedExisting];
+      });
+
+      const nowIso = new Date().toISOString();
+      setLastBlingSync(nowIso);
+      localStorage.setItem('xm_last_bling_sync', nowIso);
+    }
+
+    setIsSyncingBling(false);
+    return result;
+  };
 
   // Add new product
   const addProduct = (newProduct) => {
@@ -74,7 +129,10 @@ export function ProductProvider({ children }) {
         addProduct,
         updateProduct,
         deleteProduct,
-        resetProducts
+        resetProducts,
+        syncWithBling,
+        isSyncingBling,
+        lastBlingSync
       }}
     >
       {children}
